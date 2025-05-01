@@ -1,8 +1,7 @@
 import subprocess
 import json
 import datetime
-
-PORT = "/dev/ttyUSB0"
+import sys
 
 def extract_balanced_braces(text):
     start = text.find('{')
@@ -25,6 +24,12 @@ def format_timestamp(ts):
         return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     except Exception:
         return "Invalid timestamp"
+
+if len(sys.argv) < 2:
+    print(f"Usage: {sys.argv[0]} /dev/ttyUSBX")
+    sys.exit(1)
+
+PORT = sys.argv[1]
 
 try:
     result = subprocess.run(
@@ -54,7 +59,6 @@ try:
     print("Router and Repeater nodes:")
     for node_id, node in mesh_nodes.items():
         user = node.get("user", {})
-        # Check both top-level role and user role
         role = node.get("role") or user.get("role", "unknown")
         if role and any(r in role.upper() for r in ["ROUTER", "REPEATER"]):
             name = user.get("longName", "unknown")
