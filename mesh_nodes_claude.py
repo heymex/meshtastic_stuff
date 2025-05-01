@@ -1,18 +1,3 @@
-"""
-Improved version of mesh_nodes.py script for Meshtastic node reporting
-Original: https://github.com/heymex/meshtastic_stuff/blob/main/mesh_nodes.py
-
-Improvements:
-1. Added proper docstrings and comments
-2. Implemented argument parsing with argparse
-3. Added error handling and improved robustness
-4. Restructured for better organization and modularity
-5. Added typing annotations
-6. Fixed potential bugs in JSON parsing
-7. Added more flexible filtering options
-8. Improved output formatting
-"""
-
 import subprocess
 import json
 import datetime
@@ -232,14 +217,21 @@ def display_nodes(nodes: List[Dict[str, Any]], mode: str) -> None:
     role_width = max(len(node['role']) for node in nodes) + 2
     
     # Print header
-    print(f"{'Name':<{name_width}} {'ID':<{id_width}} {'Role':<{role_width}} {'SNR':<5} {'Hops':<5} {'Last Heard'}")
-    print(f"{'-'*name_width} {'-'*id_width} {'-'*role_width} {'-'*5} {'-'*5} {'-'*19}")
+    print(f"{'Name':<{name_width}} {'ID':<{id_width}} {'Role':<{role_width}} {'SNR':<8} {'Hops':<5} {'Last Heard'}")
+    print(f"{'-'*name_width} {'-'*id_width} {'-'*role_width} {'-'*8} {'-'*5} {'-'*19}")
     
     # Print nodes
     for node in nodes:
         hops = node.get('hops_away', 'N/A')
+        # Handle the case where hops_away might be None
+        if hops is None:
+            hops = 'N/A'
+        snr = node.get('snr', 'N/A')
+        # Format SNR with more space
+        snr_formatted = f"{snr:<8}" if snr != 'N/A' else f"{'N/A':<8}"
+        
         print(f"{node['name']:<{name_width}} {node['id']:<{id_width}} {node['role']:<{role_width}} "
-              f"{node['snr']:<5} {hops:<5} {node['last_heard_str']}")
+              f"{snr_formatted} {hops:<5} {node['last_heard_str']}")
 
 
 def parse_arguments() -> argparse.Namespace:
