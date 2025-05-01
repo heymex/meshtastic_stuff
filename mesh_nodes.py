@@ -65,20 +65,24 @@ def get_nodes(port):
 
     return json.loads(mesh_json_block)
 
-if len(sys.argv) < 3:
-    print(f"Usage: {sys.argv[0]} /dev/ttyUSBX [--direct | --routers | --all] [--age 1h] [--json-out filename.json]")
+if len(sys.argv) < 2:
+    print(f"Usage: {sys.argv[0]} /dev/ttyUSBX [--direct | --routers] [--age 1h] [--json-out filename.json]")
     sys.exit(1)
 
 PORT = sys.argv[1]
-MODE = sys.argv[2]
+MODE = "all"  # default if no mode flag is specified
 AGE_FILTER = None
 JSON_OUT = None
 
-# Parse additional optional arguments
-for i in range(3, len(sys.argv)):
-    if sys.argv[i] == "--age" and i + 1 < len(sys.argv):
+# Parse additional arguments
+for i in range(2, len(sys.argv)):
+    if sys.argv[i] == "--direct":
+        MODE = "direct"
+    elif sys.argv[i] == "--routers":
+        MODE = "routers"
+    elif sys.argv[i] == "--age" and i + 1 < len(sys.argv):
         AGE_FILTER = parse_age_string(sys.argv[i + 1])
-    if sys.argv[i] == "--json-out" and i + 1 < len(sys.argv):
+    elif sys.argv[i] == "--json-out" and i + 1 < len(sys.argv):
         JSON_OUT = sys.argv[i + 1]
 
 try:
@@ -93,13 +97,13 @@ try:
         snr = node.get("snr", "N/A")
         last_heard = node.get("lastHeard", None)
 
-        # Mode filter
-        if MODE == "--direct" and node.get("hopsAway") != 0:
+        # Apply mode filtering
+        if MODE == "direct" and node.get("hopsAway") != 0:
             continue
-        if MODE == "--routers" and not any(r in role for r in ["ROUTER", "REPEATER"]):
+        if MODE == "routers" and not any(r in role for r in ["ROUTER", "REPEATER"]):
             continue
 
-        # Age filter
+        # Apply age filtering
         if AGE_FILTER and isinstance(last_heard, (int, float)):
             last_heard_time = datetime.datetime.fromtimestamp(last_heard)
             if now - last_heard_time > AGE_FILTER:
@@ -114,10 +118,17 @@ try:
             "last_heard_str": format_timestamp(last_heard) if last_heard else "N/A"
         })
 
-    # Sort by lastHeard (descending)
+    # Sort by most recent last_heard
     node_list.sort(key=lambda x: x["last_heard"] or 0, reverse=True)
 
-    print(f"Nodes Report ({MODE}):")
+    # Report header
+    mode_label = {
+        "direct": "Directly Connected Nodes",
+        "routers": "Router and Repeater Nodes",
+        "all": "All Nodes"
+    }.get(MODE, "All Nodes")
+
+    print(f"\n{mode_label} (Filtered & Sorted):")
     for node in node_list:
         print(f"- {node['name']} ({node['id']}) | Role: {node['role']} | SNR: {node['snr']} | Last Heard: {node['last_heard_str']}")
 
