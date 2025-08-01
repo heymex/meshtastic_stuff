@@ -2,6 +2,7 @@ import subprocess
 import json
 import datetime
 import sys
+import re
 
 def extract_balanced_braces(text):
     start = text.find('{')
@@ -25,15 +26,28 @@ def format_timestamp(ts):
     except Exception:
         return "Invalid timestamp"
 
+def is_ip_address(value):
+    # Simple regex for IPv4 validation
+    return re.match(r'^\d{1,3}(\.\d{1,3}){3}$', value) is not None
+
 if len(sys.argv) < 2:
-    print(f"Usage: {sys.argv[0]} /dev/ttyUSBX")
+    print(f"Usage: {sys.argv[0]} [ /dev/ttyUSBX | IP address ]")
     sys.exit(1)
 
-PORT = sys.argv[1]
+TARGET = sys.argv[1]
+
+# Choose flag based on input format
+if TARGET.startswith("/dev/"):
+    flag = "--port"
+elif is_ip_address(TARGET):
+    flag = "--host"
+else:
+    print("Invalid input: must be a serial port (/dev/ttyX) or IP address.")
+    sys.exit(1)
 
 try:
     result = subprocess.run(
-        ["meshtastic", "--port", PORT, "--info"],
+        ["meshtastic", flag, TARGET, "--info"],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
